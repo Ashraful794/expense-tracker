@@ -1,6 +1,8 @@
-from flask import Flask, render_template
+import sqlite3
 
-from database.db import get_db, init_db, seed_db
+from flask import Flask, redirect, render_template, request, url_for
+
+from database.db import create_user, get_db, init_db, seed_db
 
 app = Flask(__name__)
 
@@ -18,9 +20,42 @@ def landing():
     return render_template("landing.html")
 
 
-@app.route("/register")
+def _is_valid_email(email):
+    """Minimal check: one '@' with text on both sides and no whitespace."""
+    local, _, domain = email.partition("@")
+    return bool(local) and bool(domain) and "@" not in domain and not any(
+        ch.isspace() for ch in email
+    )
+
+
+@app.route("/register", methods=["GET", "POST"])
 def register():
-    return render_template("register.html")
+    if request.method == "GET":
+        return render_template("register.html")
+
+    name = request.form.get("name", "").strip()
+    email = request.form.get("email", "").strip().lower()
+    password = request.form.get("password", "")
+
+    error = None
+    if not name:
+        error = "Name is required."
+    elif not email:
+        error = "Email is required."
+    elif not _is_valid_email(email):
+        error = "Please enter a valid email address."
+    elif len(password) < 8:
+        error = "Password must be at least 8 characters."
+
+    if error is None:
+        try:
+            create_user(name, email, password)
+        except sqlite3.IntegrityError:
+            error = "An account with that email already exists"
+
+    if error is not None:
+        return render_template("register.html", error=error, name=name, email=email)
+    return redirect(url_for("login"))
 
 
 @app.route("/login")
