@@ -103,6 +103,17 @@ def create_user(name, email, password, db_path=None):
         conn.close()
 
 
+def get_user_by_id(user_id, db_path=None):
+    """Return the user row matching the id, or None."""
+    conn = get_db(db_path)
+    try:
+        return conn.execute(
+            "SELECT * FROM users WHERE id = ?", (user_id,)
+        ).fetchone()
+    finally:
+        conn.close()
+
+
 def get_user_by_email(email, db_path=None):
     """Return the user row matching the email, or None."""
     conn = get_db(db_path)

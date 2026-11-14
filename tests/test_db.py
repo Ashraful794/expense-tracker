@@ -75,3 +75,12 @@ def test_unique_email(seeded):
                 "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
                 ("Other", "demo@spendly.com", "x"),
             )
+
+
+def test_get_user_by_id(seeded):
+    from database.db import get_user_by_email, get_user_by_id
+
+    demo = get_user_by_email("demo@spendly.com", seeded)
+    row = get_user_by_id(demo["id"], seeded)
+    assert row["email"] == "demo@spendly.com"
+    assert get_user_by_id(99999, seeded) is None

@@ -36,10 +36,10 @@ def test_get_login_renders_form(client):
     assert b'action="/login"' in resp.data
 
 
-def test_valid_login_sets_session_and_redirects_home(client):
+def test_valid_login_sets_session_and_redirects_to_profile(client):
     resp = _login(client)
     assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
+    assert resp.headers["Location"].endswith("/profile")
     assert isinstance(_user_id(client), int)
 
 
@@ -111,20 +111,20 @@ def test_navbar_logged_in_shows_signout_only(client, path):
     assert b"Get started" not in body
 
 
-def test_logged_in_get_login_redirects_home(client):
+def test_logged_in_get_login_redirects_to_profile(client):
     _login(client)
     user_id = _user_id(client)
     resp = client.get("/login")
     assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
+    assert resp.headers["Location"].endswith("/profile")
     assert _user_id(client) == user_id
 
 
-def test_logged_in_get_register_redirects_home(client):
+def test_logged_in_get_register_redirects_to_profile(client):
     _login(client)
     resp = client.get("/register")
     assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
+    assert resp.headers["Location"].endswith("/profile")
 
 
 def test_logged_in_post_login_does_not_switch_account(client):
@@ -133,7 +133,7 @@ def test_logged_in_post_login_does_not_switch_account(client):
     user_id = _user_id(client)
     resp = _login(client, "other@example.com", "password123")
     assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
+    assert resp.headers["Location"].endswith("/profile")
     assert _user_id(client) == user_id
 
 
@@ -144,7 +144,7 @@ def test_logged_in_post_register_creates_no_user(client):
         data={"name": "Intruder", "email": "intruder@example.com", "password": "password123"},
     )
     assert resp.status_code == 302
-    assert resp.headers["Location"].endswith("/")
+    assert resp.headers["Location"].endswith("/profile")
     assert db.get_user_by_email("intruder@example.com") is None
 
 

@@ -39,13 +39,13 @@ No new dependencies. `werkzeug.security.check_password_hash` is already availabl
 - All templates extend `base.html`
 - Use `url_for()` for every internal link — never hardcode paths
 - On failed login show a generic flash error ("Invalid email or password.") — do not reveal which field was wrong
-- After successful login redirect to `url_for("landing")` until a dashboard route exists
+- After successful login redirect to `url_for("profile")` (amended in Step 4; originally `landing` until a profile/dashboard route existed). Already-logged-in visits to `/login` and `/register` also redirect to `profile`
 - `logout()` must call `session.clear()` then redirect to `url_for("landing")`
 - `get_user_by_email` belongs in `database/db.py`, not inline in the route
 
 ## Definition of done
 - [ ] Visiting `GET /login` renders the login form with email and password fields
-- [ ] Submitting the form with valid credentials (e.g. demo@spendly.com / demo123) sets `session["user_id"]` and redirects to `/`
+- [ ] Submitting the form with valid credentials (e.g. demo@spendly.com / demo123) sets `session["user_id"]` and redirects to `/profile`
 - [ ] Submitting with a wrong password shows "Invalid email or password." flash and stays on the login page
 - [ ] Submitting with an unregistered email shows the same generic error flash
 - [ ] Visiting `GET /logout` clears the session and redirects to `/`
