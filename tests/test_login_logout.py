@@ -89,3 +89,76 @@ def test_logout_is_not_the_stub_string(client):
 def test_logout_when_logged_out_is_harmless(client):
     resp = client.get("/logout")
     assert resp.status_code == 302
+
+
+@pytest.mark.parametrize("path", ["/", "/terms", "/privacy"])
+def test_navbar_logged_out_shows_signin_and_get_started(client, path):
+    body = client.get(path).data
+    assert b"Sign in" in body
+    assert b"Get started" in body
+    assert b'href="/login"' in body
+    assert b"Sign out" not in body
+    assert b'href="/logout"' not in body
+
+
+@pytest.mark.parametrize("path", ["/", "/terms", "/privacy"])
+def test_navbar_logged_in_shows_signout_only(client, path):
+    _login(client)
+    body = client.get(path).data
+    assert b"Sign out" in body
+    assert b'href="/logout"' in body
+    assert b"Sign in" not in body
+    assert b"Get started" not in body
+
+
+def test_logged_in_get_login_redirects_home(client):
+    _login(client)
+    user_id = _user_id(client)
+    resp = client.get("/login")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/")
+    assert _user_id(client) == user_id
+
+
+def test_logged_in_get_register_redirects_home(client):
+    _login(client)
+    resp = client.get("/register")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/")
+
+
+def test_logged_in_post_login_does_not_switch_account(client):
+    db.create_user("Other", "other@example.com", "password123")
+    _login(client)
+    user_id = _user_id(client)
+    resp = _login(client, "other@example.com", "password123")
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/")
+    assert _user_id(client) == user_id
+
+
+def test_logged_in_post_register_creates_no_user(client):
+    _login(client)
+    resp = client.post(
+        "/register",
+        data={"name": "Intruder", "email": "intruder@example.com", "password": "password123"},
+    )
+    assert resp.status_code == 302
+    assert resp.headers["Location"].endswith("/")
+    assert db.get_user_by_email("intruder@example.com") is None
+
+
+@pytest.mark.parametrize("path", ["/login", "/register"])
+def test_auth_pages_available_again_after_logout(client, path):
+    _login(client)
+    client.get("/logout")
+    assert client.get(path).status_code == 200
+
+
+def test_navbar_reverts_after_logout(client):
+    _login(client)
+    client.get("/logout")
+    body = client.get("/").data
+    assert b"Sign in" in body
+    assert b"Get started" in body
+    assert b"Sign out" not in body
