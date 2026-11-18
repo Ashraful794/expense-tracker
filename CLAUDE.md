@@ -96,7 +96,7 @@ pytest -s
 | `GET /register` | Implemented — renders `register.html` |
 | `GET /login` | Implemented — renders `login.html` |
 | `GET /logout` | Implemented — clears session, redirects to `/` |
-| `GET /profile` | Implemented — renders `profile.html`; user identity from DB, stats/transactions/categories hardcoded (Step 4); real queries in Step 5 |
+| `GET /profile` | Implemented — renders `profile.html`; user identity and stats/transactions/categories from DB; optional `date_from`/`date_to` filter (Step 6) |
 | `GET /expenses/add` | Stub — Step 7 |
 | `GET /expenses/<id>/edit` | Stub — Step 8 |
 | `GET /expenses/<id>/delete` | Stub — Step 9 |

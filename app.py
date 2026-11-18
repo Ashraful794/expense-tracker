@@ -1,13 +1,26 @@
+import calendar
 import os
 import sqlite3
-from datetime import datetime
+from datetime import date, datetime
 
-from flask import Flask, flash, g, redirect, render_template, request, session, url_for
+from flask import (
+    Flask,
+    flash,
+    g,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from werkzeug.security import check_password_hash
 
 from database.db import (
     create_user,
+    get_category_breakdown,
     get_db,
+    get_recent_transactions,
+    get_summary_stats,
     get_user_by_email,
     get_user_by_id,
     init_db,
@@ -100,36 +113,6 @@ def logout():
     return redirect(url_for("landing"))
 
 
-# Hardcoded profile data (Step 4). Mirrors seed_db(); Step 5 replaces these
-# constants with real database queries. Only the user identity is real.
-PROFILE_STATS = {
-    "total_spent": 319.24,
-    "transaction_count": 8,
-    "top_category": "Bills",
-}
-
-PROFILE_TRANSACTIONS = [  # newest first
-    {"date": "14 Nov 2026", "description": "Groceries", "category": "Food", "slug": "food", "amount": 22.75},
-    {"date": "12 Nov 2026", "description": "Miscellaneous", "category": "Other", "slug": "other", "amount": 15.00},
-    {"date": "10 Nov 2026", "description": "New shoes", "category": "Shopping", "slug": "shopping", "amount": 65.99},
-    {"date": "8 Nov 2026", "description": "Movie night", "category": "Entertainment", "slug": "entertainment", "amount": 30.00},
-    {"date": "6 Nov 2026", "description": "Pharmacy", "category": "Health", "slug": "health", "amount": 45.00},
-    {"date": "4 Nov 2026", "description": "Electricity bill", "category": "Bills", "slug": "bills", "amount": 120.00},
-    {"date": "2 Nov 2026", "description": "Bus pass top-up", "category": "Transport", "slug": "transport", "amount": 8.00},
-    {"date": "1 Nov 2026", "description": "Lunch", "category": "Food", "slug": "food", "amount": 12.50},
-]
-
-PROFILE_CATEGORIES = [  # highest total first
-    {"name": "Bills", "slug": "bills", "total": 120.00, "percent": 37.6},
-    {"name": "Shopping", "slug": "shopping", "total": 65.99, "percent": 20.7},
-    {"name": "Health", "slug": "health", "total": 45.00, "percent": 14.1},
-    {"name": "Food", "slug": "food", "total": 35.25, "percent": 11.0},
-    {"name": "Entertainment", "slug": "entertainment", "total": 30.00, "percent": 9.4},
-    {"name": "Other", "slug": "other", "total": 15.00, "percent": 4.7},
-    {"name": "Transport", "slug": "transport", "total": 8.00, "percent": 2.5},
-]
-
-
 def _current_user():
     """Return the logged-in user's row (cached for the request), or None."""
     if "current_user" not in g:
@@ -157,12 +140,88 @@ def inject_nav_user():
     return {"nav_user_name": user["name"]} if user else {}
 
 
+def _parse_iso_date(value):
+    """Return a normalised 'YYYY-MM-DD' string, or None if absent/malformed."""
+    try:
+        return datetime.strptime((value or "").strip(), "%Y-%m-%d").date().isoformat()
+    except ValueError:
+        return None
+
+
+def _subtract_months(d, months):
+    """Return d shifted back by whole months, clamping to the month's last day."""
+    # Count months since year 0 so the borrow across years is one divmod.
+    year, month_index = divmod(d.year * 12 + (d.month - 1) - months, 12)
+    month = month_index + 1
+    return date(year, month, min(d.day, calendar.monthrange(year, month)[1]))
+
+
+def _build_presets(today, date_from=None, date_to=None):
+    """Return the filter presets plus whether the custom range is active.
+
+    Each preset is a dict with label, date_from, date_to and active (True when
+    it matches the current filter). The custom form is active when a filter is
+    set that matches no preset.
+    """
+    today_iso = today.isoformat()
+    ranges = [
+        ("This Month", today.replace(day=1).isoformat(), today_iso),
+        ("Last 3 Months", _subtract_months(today, 3).isoformat(), today_iso),
+        ("Last 6 Months", _subtract_months(today, 6).isoformat(), today_iso),
+        ("All Time", None, None),
+    ]
+    presets = [
+        {
+            "label": label,
+            "date_from": start,
+            "date_to": end,
+            "active": (start, end) == (date_from, date_to),
+        }
+        for label, start, end in ranges
+    ]
+    custom_active = bool(date_from or date_to) and not any(
+        p["active"] for p in presets
+    )
+    return presets, custom_active
+
+
+def _today():
+    """Return today's (server-local) date; tests patch this for fixed dates."""
+    return date.today()
+
+
+def _read_date_filter(args, today):
+    """Return validated (date_from, date_to) from query args.
+
+    Both dates are required and may not be after today. A single valid date,
+    a future date or a reversed range flashes an error and yields no filter;
+    equal dates are allowed (one day).
+    """
+    date_from = _parse_iso_date(args.get("date_from"))
+    date_to = _parse_iso_date(args.get("date_to"))
+    if bool(date_from) != bool(date_to):
+        flash("Please choose both a start and an end date.")
+        return None, None
+    if date_from and date_to and max(date_from, date_to) > today.isoformat():
+        flash("Dates cannot be in the future.")
+        return None, None
+    if date_from and date_to and date_from > date_to:
+        flash("Start date must be before end date.")
+        return None, None
+    return date_from, date_to
+
+
 @app.route("/profile")
 def profile():
     user = _current_user()
     if user is None:
         session.clear()
         return redirect(url_for("login"))
+
+    today = _today()
+    date_from, date_to = _read_date_filter(request.args, today)
+    presets, custom_active = _build_presets(today, date_from, date_to)
+
     return render_template(
         "profile.html",
         user={
@@ -171,9 +230,14 @@ def profile():
             "initials": _initials(user["name"]),
             "member_since": _member_since(user["created_at"]),
         },
-        stats=PROFILE_STATS,
-        transactions=PROFILE_TRANSACTIONS,
-        categories=PROFILE_CATEGORIES,
+        stats=get_summary_stats(user["id"], date_from, date_to),
+        transactions=get_recent_transactions(user["id"], date_from=date_from, date_to=date_to),
+        categories=get_category_breakdown(user["id"], date_from, date_to),
+        presets=presets,
+        date_from=date_from,
+        date_to=date_to,
+        custom_active=custom_active,
+        max_date=today.isoformat(),
     )
 
 

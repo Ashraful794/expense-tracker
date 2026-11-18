@@ -23,6 +23,29 @@
         </div>
     </section>
 
+    <section class="profile-card profile-filter" aria-label="Filter by date">
+        {% for message in get_flashed_messages() %}
+        <div class="profile-flash" role="alert">{{ message }}</div>
+        {% endfor %}
+        <nav class="profile-presets" aria-label="Quick date ranges">
+            {% for p in presets %}
+            <a class="profile-preset{% if p.active %} profile-preset--active{% endif %}"
+               href="{{ url_for('profile', date_from=p.date_from, date_to=p.date_to) }}"
+               {% if p.active %}aria-current="page"{% endif %}>{{ p.label }}</a>
+            {% endfor %}
+        </nav>
+        <form class="profile-filter-form{% if custom_active %} profile-filter-form--active{% endif %}"
+              method="get" action="{{ url_for('profile') }}">
+            <label class="profile-filter-label" for="profile-date-from">From
+                <input class="profile-filter-input" type="date" id="profile-date-from" name="date_from" value="{{ date_from or '' }}" max="{{ max_date }}" required>
+            </label>
+            <label class="profile-filter-label" for="profile-date-to">To
+                <input class="profile-filter-input" type="date" id="profile-date-to" name="date_to" value="{{ date_to or '' }}" max="{{ max_date }}" required>
+            </label>
+            <button class="profile-filter-apply" type="submit">Apply</button>
+        </form>
+    </section>
+
     <section class="profile-stats" aria-label="Spending summary">
         <div class="profile-card profile-stat">
             <span class="profile-stat-label">Total spent</span>
@@ -41,6 +64,7 @@
     <div class="profile-grid">
         <section class="profile-card" aria-labelledby="profile-history-title">
             <h2 class="profile-section-title" id="profile-history-title">Recent transactions</h2>
+            {% if transactions %}
             <div class="profile-table-wrap" role="region" tabindex="0" aria-label="Recent transactions">
                 <table class="profile-table">
                     <caption class="profile-sr-only">Recent transactions</caption>
@@ -64,10 +88,14 @@
                     </tbody>
                 </table>
             </div>
+            {% else %}
+            <p class="profile-empty">No transactions in this range.</p>
+            {% endif %}
         </section>
 
         <section class="profile-card" aria-labelledby="profile-cats-title">
             <h2 class="profile-section-title" id="profile-cats-title">By category</h2>
+            {% if categories %}
             <ul class="profile-cats">
                 {% for c in categories %}
                 <li class="profile-cat">
@@ -79,6 +107,9 @@
                 </li>
                 {% endfor %}
             </ul>
+            {% else %}
+            <p class="profile-empty">No spending in this range.</p>
+            {% endif %}
         </section>
     </div>
 

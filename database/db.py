@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 
 from werkzeug.security import generate_password_hash
 
@@ -112,6 +112,112 @@ def get_user_by_id(user_id, db_path=None):
         ).fetchone()
     finally:
         conn.close()
+
+
+def _date_clause(date_from, date_to):
+    """Return (sql_fragment, params) for optional inclusive date bounds.
+
+    Only fixed SQL fragments are concatenated; values always go in params.
+    """
+    sql, params = "", []
+    if date_from:
+        sql += " AND date >= ?"
+        params.append(date_from)
+    if date_to:
+        sql += " AND date <= ?"
+        params.append(date_to)
+    return sql, params
+
+
+def _fetch_expenses(select_sql, user_id, date_from, date_to, tail_sql="",
+                    tail_params=(), db_path=None):
+    """Run a user-scoped, optionally date-filtered expenses query.
+
+    select_sql and tail_sql are fixed SQL strings written in this module;
+    every value (user id, dates, limit) is passed as a parameter.
+    """
+    clause, params = _date_clause(date_from, date_to)
+    conn = get_db(db_path)
+    try:
+        return conn.execute(
+            select_sql + " WHERE user_id = ?" + clause + " " + tail_sql,
+            [user_id, *params, *tail_params],
+        ).fetchall()
+    finally:
+        conn.close()
+
+
+def _slugify(category):
+    """Return a CSS-class-safe slug for a category name, e.g. 'Food' -> 'food'."""
+    return category.lower().replace(" ", "-")
+
+
+def _format_date(iso_date):
+    """Format 'YYYY-MM-DD' as '14 Nov 2026' (no zero padding); raw on failure."""
+    try:
+        d = datetime.strptime(iso_date, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return iso_date
+    return f"{d.day} {d:%b %Y}"
+
+
+def get_summary_stats(user_id, date_from=None, date_to=None, db_path=None):
+    """Return total spent, transaction count and top category for the range."""
+    # One grouped query; ordering matches get_category_breakdown so the top
+    # category is always that function's first row.
+    rows = _fetch_expenses(
+        "SELECT category, SUM(amount) AS total, COUNT(*) AS n FROM expenses",
+        user_id, date_from, date_to,
+        "GROUP BY category ORDER BY total DESC, category",
+        db_path=db_path,
+    )
+    return {
+        "total_spent": round(sum(r["total"] for r in rows), 2),
+        "transaction_count": sum(r["n"] for r in rows),
+        "top_category": rows[0]["category"] if rows else "—",
+    }
+
+
+def get_recent_transactions(
+    user_id, limit=10, date_from=None, date_to=None, db_path=None
+):
+    """Return the newest expenses in the range, formatted for display."""
+    rows = _fetch_expenses(
+        "SELECT date, description, category, amount FROM expenses",
+        user_id, date_from, date_to,
+        "ORDER BY date DESC, id DESC LIMIT ?", (limit,),
+        db_path=db_path,
+    )
+    return [
+        {
+            "date": _format_date(r["date"]),
+            "description": r["description"] or "",
+            "category": r["category"],
+            "slug": _slugify(r["category"]),
+            "amount": r["amount"],
+        }
+        for r in rows
+    ]
+
+
+def get_category_breakdown(user_id, date_from=None, date_to=None, db_path=None):
+    """Return per-category totals and percentage share, highest first."""
+    rows = _fetch_expenses(
+        "SELECT category, SUM(amount) AS total FROM expenses",
+        user_id, date_from, date_to,
+        "GROUP BY category ORDER BY total DESC, category",
+        db_path=db_path,
+    )
+    grand = sum(r["total"] for r in rows)
+    return [
+        {
+            "name": r["category"],
+            "slug": _slugify(r["category"]),
+            "total": round(r["total"], 2),
+            "percent": round(r["total"] / grand * 100, 1) if grand else 0.0,
+        }
+        for r in rows
+    ]
 
 
 def get_user_by_email(email, db_path=None):

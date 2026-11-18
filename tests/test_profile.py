@@ -140,13 +140,14 @@ def test_profile_css_uses_tokens_only():
     assert "box-shadow" not in css
 
 
-def test_profile_data_is_consistent():
-    from app import PROFILE_CATEGORIES, PROFILE_STATS, PROFILE_TRANSACTIONS
+def test_profile_data_is_consistent(client):
+    stats = db.get_summary_stats(1)
+    transactions = db.get_recent_transactions(1)
+    categories = db.get_category_breakdown(1)
 
-    total = PROFILE_STATS["total_spent"]
-    assert sum(t["amount"] for t in PROFILE_TRANSACTIONS) == pytest.approx(total)
-    assert sum(c["total"] for c in PROFILE_CATEGORIES) == pytest.approx(total)
-    assert sum(c["percent"] for c in PROFILE_CATEGORIES) == pytest.approx(100, abs=0.2)
-    assert len(PROFILE_TRANSACTIONS) == PROFILE_STATS["transaction_count"]
-    top = max(PROFILE_CATEGORIES, key=lambda c: c["total"])
-    assert top["name"] == PROFILE_STATS["top_category"]
+    total = stats["total_spent"]
+    assert sum(t["amount"] for t in transactions) == pytest.approx(total)
+    assert sum(c["total"] for c in categories) == pytest.approx(total)
+    assert sum(c["percent"] for c in categories) == pytest.approx(100, abs=0.2)
+    assert len(transactions) == stats["transaction_count"]
+    assert categories[0]["name"] == stats["top_category"]
