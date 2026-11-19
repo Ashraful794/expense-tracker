@@ -132,6 +132,41 @@ def insert_expense(user_id, amount, category, date, description, db_path=None):
         conn.close()
 
 
+def get_expense_by_id(expense_id, user_id, db_path=None):
+    """Return the expense as a dict if it belongs to the user, else None."""
+    conn = get_db(db_path)
+    try:
+        row = conn.execute(
+            "SELECT id, user_id, amount, category, date, description "
+            "FROM expenses WHERE id = ? AND user_id = ?",
+            (expense_id, user_id),
+        ).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def update_expense(
+    expense_id, user_id, amount, category, date, description, db_path=None
+):
+    """Update the user's expense and return the number of rows changed.
+
+    Scoped by user_id so one user can never modify another's expense; returns
+    0 (without raising) when no matching row exists.
+    """
+    conn = get_db(db_path)
+    try:
+        cur = conn.execute(
+            "UPDATE expenses SET amount = ?, category = ?, date = ?, "
+            "description = ? WHERE id = ? AND user_id = ?",
+            (amount, category, date, description, expense_id, user_id),
+        )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
 def get_user_by_id(user_id, db_path=None):
     """Return the user row matching the id, or None."""
     conn = get_db(db_path)
@@ -212,13 +247,14 @@ def get_recent_transactions(
 ):
     """Return the newest expenses in the range, formatted for display."""
     rows = _fetch_expenses(
-        "SELECT date, description, category, amount FROM expenses",
+        "SELECT id, date, description, category, amount FROM expenses",
         user_id, date_from, date_to,
         "ORDER BY date DESC, id DESC LIMIT ?", (limit,),
         db_path=db_path,
     )
     return [
         {
+            "id": r["id"],
             "date": _format_date(r["date"]),
             "description": r["description"] or "",
             "category": r["category"],

@@ -274,6 +274,16 @@
     font-weight: 500;
 }
 
+.profile-edit-link {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+.profile-edit-link:hover,
+.profile-edit-link:focus-visible {
+    text-decoration: underline;
+}
+
 /* Category badges: text stays --ink-soft for contrast; colour is tint + dot. */
 .profile-badge {
     display: inline-flex;

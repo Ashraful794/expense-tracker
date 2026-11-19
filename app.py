@@ -6,6 +6,7 @@ from datetime import date, datetime
 
 from flask import (
     Flask,
+    abort,
     flash,
     g,
     redirect,
@@ -21,6 +22,7 @@ from database.db import (
     create_user,
     get_category_breakdown,
     get_db,
+    get_expense_by_id,
     get_recent_transactions,
     get_summary_stats,
     get_user_by_email,
@@ -28,9 +30,10 @@ from database.db import (
     init_db,
     insert_expense,
     seed_db,
+    update_expense,
 )
 
-app = Flask(__name__)
+app =Flask(__name__)
 # The fallback key is for local development only; set SECRET_KEY in production.
 app.secret_key = os.environ.get("SECRET_KEY", "dev-only-insecure-key-change-me")
 
@@ -327,9 +330,53 @@ def add_expense():
     return redirect(url_for("profile"))
 
 
-@app.route("/expenses/<int:id>/edit")
+@app.route("/expenses/<int:id>/edit", methods=["GET", "POST"])
 def edit_expense(id):
-    return "Edit expense — coming in Step 8"
+    user = _current_user()
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    expense = get_expense_by_id(id, user["id"])
+    if expense is None:
+        abort(404)
+
+    if request.method == "GET":
+        values = {
+            "amount": f"{expense['amount']:.2f}",
+            "category": expense["category"],
+            "date": expense["date"],
+            "description": expense["description"] or "",
+        }
+        return render_template(
+            "edit_expense.html",
+            expense=expense,
+            categories=CATEGORIES,
+            values=values,
+            error=None,
+        )
+
+    cleaned, error = _validate_expense_form(request.form)
+    if error is not None:
+        return render_template(
+            "edit_expense.html",
+            expense=expense,
+            categories=CATEGORIES,
+            values=request.form,
+            error=error,
+        )
+
+    updated = update_expense(
+        id,
+        user["id"],
+        cleaned["amount"],
+        cleaned["category"],
+        cleaned["date"],
+        cleaned["description"],
+    )
+    if not updated:
+        abort(404)
+    return redirect(url_for("profile"))
 
 
 @app.route("/expenses/<int:id>/delete")
