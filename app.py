@@ -1,4 +1,5 @@
 import calendar
+import math
 import os
 import sqlite3
 from datetime import date, datetime
@@ -16,6 +17,7 @@ from flask import (
 from werkzeug.security import check_password_hash
 
 from database.db import (
+    CATEGORIES,
     create_user,
     get_category_breakdown,
     get_db,
@@ -24,6 +26,7 @@ from database.db import (
     get_user_by_email,
     get_user_by_id,
     init_db,
+    insert_expense,
     seed_db,
 )
 
@@ -263,9 +266,65 @@ def privacy():
 # Placeholder routes — students will implement these                  #
 # ------------------------------------------------------------------ #
 
-@app.route("/expenses/add")
+def _validate_expense_form(form):
+    """Return (cleaned, error) for the add-expense form; first failure wins."""
+    try:
+        amount = float((form.get("amount") or "").strip())
+    except ValueError:
+        amount = None
+    if amount is None or not math.isfinite(amount) or amount <= 0:
+        return None, "Enter an amount greater than 0."
+
+    category = form.get("category", "")
+    if category not in CATEGORIES:
+        return None, "Choose a valid category."
+
+    expense_date = _parse_iso_date(form.get("date"))
+    if expense_date is None:
+        return None, "Enter a valid date."
+
+    description = (form.get("description") or "").strip()
+    if len(description) > 200:
+        return None, "Description must be 200 characters or fewer."
+
+    return {
+        "amount": round(amount, 2),
+        "category": category,
+        "date": expense_date,
+        "description": description or None,
+    }, None
+
+
+@app.route("/expenses/add", methods=["GET", "POST"])
 def add_expense():
-    return "Add expense — coming in Step 7"
+    user = _current_user()
+    if user is None:
+        session.clear()
+        return redirect(url_for("login"))
+
+    if request.method == "GET":
+        values = {"date": _today().isoformat()}
+        return render_template(
+            "add_expense.html", categories=CATEGORIES, values=values, error=None
+        )
+
+    cleaned, error = _validate_expense_form(request.form)
+    if error is not None:
+        return render_template(
+            "add_expense.html",
+            categories=CATEGORIES,
+            values=request.form,
+            error=error,
+        )
+
+    insert_expense(
+        user["id"],
+        cleaned["amount"],
+        cleaned["category"],
+        cleaned["date"],
+        cleaned["description"],
+    )
+    return redirect(url_for("profile"))
 
 
 @app.route("/expenses/<int:id>/edit")

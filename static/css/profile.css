@@ -15,6 +15,14 @@
 }
 
 /* Header */
+.profile-header {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--profile-space-2);
+    justify-content: space-between;
+}
+
 .profile-title {
     font-family: var(--font-display);
     font-size: 1.5rem;

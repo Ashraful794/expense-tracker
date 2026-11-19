@@ -21,6 +21,7 @@
             <div class="nav-links">
                 {% if session.get('user_id') %}
                 <a href="{{ url_for('analytics') }}" class="nav-link{% if request.endpoint == 'analytics' %} active{% endif %}"{% if request.endpoint == 'analytics' %} aria-current="page"{% endif %}>Analytics</a>
+                <a href="{{ url_for('add_expense') }}" class="nav-link{% if request.endpoint == 'add_expense' %} active{% endif %}"{% if request.endpoint == 'add_expense' %} aria-current="page"{% endif %}>Add Expense</a>
                 <span class="nav-user">{{ nav_user_name }}</span>
                 <a href="{{ url_for('logout') }}" class="nav-cta">Sign out</a>
                 {% else %}
