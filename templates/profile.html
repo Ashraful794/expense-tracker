@@ -10,8 +10,11 @@
 <div class="profile-page">
 
     <header class="profile-header">
-        <h1 class="profile-title">Profile</h1>
-        <p class="profile-subtitle">Your account and spending overview</p>
+        <div>
+            <h1 class="profile-title">Profile</h1>
+            <p class="profile-subtitle">Your account and spending overview</p>
+        </div>
+        <a href="{{ url_for('add_expense') }}" class="btn-primary profile-add">Add Expense</a>
     </header>
 
     <section class="profile-card profile-user" aria-label="Account details">

@@ -10,6 +10,17 @@ DB_PATH = os.path.join(
 )
 
 
+CATEGORIES = (
+    "Food",
+    "Transport",
+    "Bills",
+    "Health",
+    "Entertainment",
+    "Shopping",
+    "Other",
+)
+
+
 def get_db(db_path=None):
     """Return a SQLite connection with Row access and foreign keys enabled."""
     conn = sqlite3.connect(db_path or DB_PATH)
@@ -96,6 +107,24 @@ def create_user(name, email, password, db_path=None):
         cur = conn.execute(
             "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)",
             (name, email, generate_password_hash(password)),
+        )
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def insert_expense(user_id, amount, category, date, description, db_path=None):
+    """Insert an expense for the user and return the new expense id.
+
+    Callers validate the values; this helper only persists them.
+    """
+    conn = get_db(db_path)
+    try:
+        cur = conn.execute(
+            "INSERT INTO expenses (user_id, amount, category, date, description) "
+            "VALUES (?, ?, ?, ?, ?)",
+            (user_id, amount, category, date, description),
         )
         conn.commit()
         return cur.lastrowid
