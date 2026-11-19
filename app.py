@@ -121,6 +121,14 @@ def _current_user():
     return g.current_user
 
 
+@app.route("/analytics")
+def analytics():
+    if _current_user() is None:
+        session.clear()
+        return redirect(url_for("login"))
+    return render_template("analytics.html")
+
+
 def _initials(name):
     """Return up to two uppercase initials from a display name."""
     return "".join(word[0] for word in name.split()[:2]).upper()
