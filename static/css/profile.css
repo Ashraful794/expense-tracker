@@ -284,6 +284,15 @@
     text-decoration: underline;
 }
 
+.profile-actions {
+    white-space: nowrap;
+}
+
+.profile-delete-form {
+    display: inline;
+    margin: 0 0 0 var(--profile-space-1);
+}
+
 /* Category badges: text stays --ink-soft for contrast; colour is tint + dot. */
 .profile-badge {
     display: inline-flex;
@@ -408,5 +417,102 @@
 
     .profile-stats {
         grid-template-columns: 1fr;
+    }
+}
+
+/* Delete confirmation dialog (native <dialog>, opened from main.js) */
+.profile-confirm {
+    width: min(26rem, calc(100vw - 2rem));
+    margin: auto; /* a global reset zeroes the UA centring margin */
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--paper-card);
+    color: var(--ink);
+    font-family: var(--font-body);
+}
+
+/* Fallback for engines without color-mix(): solid --ink dimmed by opacity. */
+.profile-confirm::backdrop {
+    background: var(--ink);
+    opacity: 0.55;
+}
+
+@supports (background: color-mix(in srgb, red 50%, transparent)) {
+    .profile-confirm::backdrop {
+        background: color-mix(in srgb, var(--ink) 55%, transparent);
+        opacity: 1;
+    }
+}
+
+.profile-confirm-body {
+    padding: var(--profile-space-3);
+}
+
+.profile-confirm-title {
+    margin: 0 0 var(--profile-space-1);
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 400;
+    color: var(--ink);
+}
+
+.profile-confirm-detail {
+    margin: 0;
+    padding: var(--profile-space-1) var(--profile-space-2);
+    background: var(--paper-warm);
+    border-radius: var(--radius-sm);
+    color: var(--ink-soft);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+}
+
+.profile-confirm-detail[hidden] {
+    display: none;
+}
+
+.profile-confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--profile-space-1);
+    margin-top: var(--profile-space-3);
+}
+
+.profile-confirm-actions .btn-ghost,
+.profile-confirm-actions .btn-delete {
+    padding: 0.55rem 1.25rem;
+    font: inherit;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Solid danger variant of .btn-delete for the destructive action. */
+.profile-confirm-actions .btn-delete {
+    background: var(--danger);
+    color: var(--paper-card);
+}
+
+.profile-confirm-actions .btn-delete:hover,
+.profile-confirm-actions .btn-delete:focus-visible {
+    background: color-mix(in srgb, var(--danger) 85%, var(--ink));
+}
+
+.profile-confirm-actions .btn-ghost:focus-visible,
+.profile-confirm-actions .btn-delete:focus-visible {
+    outline: 2px solid var(--ink);
+    outline-offset: 2px;
+}
+
+@keyframes profile-confirm-in {
+    from {
+        opacity: 0;
+        transform: translateY(0.5rem);
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .profile-confirm[open] {
+        animation: profile-confirm-in 0.15s ease-out;
     }
 }

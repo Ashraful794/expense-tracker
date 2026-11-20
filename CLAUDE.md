@@ -97,9 +97,9 @@ pytest -s
 | `GET /login` | Implemented — renders `login.html` |
 | `GET /logout` | Implemented — clears session, redirects to `/` |
 | `GET /profile` | Implemented — renders `profile.html`; user identity and stats/transactions/categories from DB; optional `date_from`/`date_to` filter (Step 6) |
-| `GET /expenses/add` | Stub — Step 7 |
+| `GET/POST /expenses/add` | Implemented — renders `add_expense.html`, validates, inserts and redirects to `/profile` (Step 7) |
 | `GET/POST /expenses/<id>/edit` | Implemented — renders `edit_expense.html`, owner-only (404 otherwise), updates and redirects to `/profile` (Step 8) |
-| `GET /expenses/<id>/delete` | Stub — Step 9 |
+| `POST /expenses/<id>/delete` | Implemented — POST-only (GET → 405), owner-only (404 otherwise), deletes and redirects to `/profile` (Step 9) |
 
 **Do not implement a stub route unless the active task explicitly targets that step.**
 

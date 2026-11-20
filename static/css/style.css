@@ -375,6 +375,24 @@ a { color: inherit; text-decoration: none; }
     color: var(--ink);
 }
 
+.btn-delete {
+    background: transparent;
+    color: var(--danger);
+    border: 1px solid var(--danger);
+    border-radius: var(--radius-sm);
+    padding: 0.2rem 0.6rem;
+    font: inherit;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-delete:hover,
+.btn-delete:focus-visible {
+    background: var(--danger-light);
+}
+
 /* ------------------------------------------------------------------ */
 /* Features section                                                    */
 /* ------------------------------------------------------------------ */
