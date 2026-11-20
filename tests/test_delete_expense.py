@@ -139,7 +139,7 @@ class TestProfileDeleteButton:
     def test_rows_carry_confirm_detail(self, logged_in):
         html = logged_in.get("/profile").get_data(as_text=True)
         attr = html.split("data-confirm-detail=", 1)[1].split(">", 1)[0]
-        assert "₹" in attr
+        assert "৳" in attr
 
     def test_confirm_dialog_rendered_once(self, logged_in):
         html = logged_in.get("/profile").get_data(as_text=True)

@@ -93,6 +93,28 @@ def test_navbar_logged_out_has_no_username(client):
     assert b"nav-user" not in body
 
 
+def test_navbar_has_profile_link_when_logged_in(client):
+    _login(client)
+    body = client.get("/analytics").data.decode()
+    assert 'href="/profile"' in body
+    assert 'href="/profile" class="nav-link"' in body
+    assert 'aria-current="page">Profile' not in body
+
+
+def test_navbar_profile_link_active_on_profile(client):
+    _login(client)
+    body = client.get("/profile").data.decode()
+    assert re.search(
+        r'href="/profile" class="nav-link active" aria-current="page">Profile</a>',
+        body,
+    )
+
+
+def test_navbar_logged_out_has_no_profile_link(client):
+    body = client.get("/login").data
+    assert b'href="/profile"' not in body
+
+
 def test_profile_shows_the_logged_in_user_not_demo(client):
     db.create_user("Jane Roe", "jane@example.com", "password123")
     client.post(

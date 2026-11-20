@@ -111,9 +111,9 @@ class TestUnfiltered:
         resp = _get(client)
         assert REVERSED_MSG not in resp.data
 
-    def test_no_params_shows_rupee_symbol(self, client):
+    def test_no_params_shows_taka_symbol(self, client):
         _login(client)
-        assert "₹" in _body(client)
+        assert "৳" in _body(client)
 
     def test_empty_params_fall_back_to_unfiltered(self, client):
         _login(client)
@@ -183,9 +183,9 @@ class TestCustomRange:
         body = _body(client, date_from=d(-400), date_to=TODAY.isoformat())
         _assert_unfiltered(body)
 
-    def test_range_amounts_keep_rupee_symbol(self, client):
+    def test_range_amounts_keep_taka_symbol(self, client):
         _login(client)
-        assert "₹" in _body(client, date_from=d(0), date_to=d(3))
+        assert "৳" in _body(client, date_from=d(0), date_to=d(3))
 
     def test_filter_does_not_modify_database(self, client):
         _login(client)
@@ -211,7 +211,7 @@ class TestEmptyRange:
     def test_range_with_no_expenses_shows_zero_total(self, client):
         _login(client)
         body = _body(client, date_from="1999-01-01", date_to="1999-12-31")
-        assert "₹0.00" in body
+        assert "৳0.00" in body
         assert "319.24" not in body
 
     def test_range_with_no_expenses_hides_all_transactions(self, client):
@@ -230,7 +230,7 @@ class TestEmptyRange:
         db.create_user("Empty User", "empty@example.com", "password123")
         _login(client, "empty@example.com", "password123")
         body = _body(client, date_from=d(0), date_to=d(3))
-        assert "₹0.00" in body
+        assert "৳0.00" in body
         for desc in DESCRIPTIONS.values():
             assert desc not in body
 
