@@ -4,7 +4,8 @@ from datetime import date, datetime, timedelta
 
 from werkzeug.security import generate_password_hash
 
-DB_PATH = os.path.join(
+# Override with the DB_PATH env var (e.g. a mounted volume path in production).
+DB_PATH = os.environ.get("DB_PATH") or os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "expense_tracker.db",
 )
