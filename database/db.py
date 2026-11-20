@@ -167,6 +167,24 @@ def update_expense(
         conn.close()
 
 
+def delete_expense(expense_id, user_id, db_path=None):
+    """Delete the user's expense and return the number of rows removed.
+
+    Scoped by user_id so one user can never delete another's expense; returns
+    0 (without raising) when no matching row exists.
+    """
+    conn = get_db(db_path)
+    try:
+        cur = conn.execute(
+            "DELETE FROM expenses WHERE id = ? AND user_id = ?",
+            (expense_id, user_id),
+        )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
 def get_user_by_id(user_id, db_path=None):
     """Return the user row matching the id, or None."""
     conn = get_db(db_path)
