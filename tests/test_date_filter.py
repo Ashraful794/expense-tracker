@@ -145,14 +145,14 @@ def test_empty_range_shows_zero_state(logged_in):
     body = logged_in.get(
         "/profile?date_from=1999-01-01&date_to=1999-01-31"
     ).data.decode()
-    assert "₹0.00" in body
+    assert "৳0.00" in body
     assert "No transactions in this range." in body
     assert 'class="profile-cat"' not in body
 
 
-def test_rupee_symbol_under_filter(logged_in):
+def test_taka_symbol_under_filter(logged_in):
     body = logged_in.get(f"/profile?date_from={_iso(0)}&date_to={_iso(3)}").data
-    assert "₹".encode() in body
+    assert "৳".encode() in body
 
 
 def test_all_time_preset_is_bare_profile_and_active(logged_in):
